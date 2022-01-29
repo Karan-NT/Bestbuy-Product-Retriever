@@ -5,8 +5,12 @@ import time
 dataURL = input('ENTER URL: ')
 print('\nRETRIEVING HTML...')
 
-dataRequest = urllib.request.urlopen(dataURL).read()
-data = BeautifulSoup(dataRequest, 'html.parser')
+dataRequest = urllib.request.Request(
+    dataURL, 
+    headers = {'User-Agent': 'Mozilla/5.0'}
+)
+dataOpen = urllib.request.urlopen(dataRequest).read()
+data = BeautifulSoup(dataOpen, 'html.parser')
 print('\nRETRIEVAL SUCCESSFUL')
 
 products = dict()
