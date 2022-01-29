@@ -1,8 +1,22 @@
-from multiprocessing import connection
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import sqlite3
+import smtplib
 import time
+
+username = input('ENTER USERNAME: ')
+password = input('ENTER PASSWORD: ')
+recipient = input('ENTER RECIPIENT: ')
+
+server = smtplib.SMTP('smtp.gmail.com', 587)
+server.ehlo()
+server.starttls()
+server.login(username, password)
+server.sendmail(
+    username, 
+    [recipient], 
+    'this is test message'
+)
 
 dataURL = input('\nENTER URL: ')
 print('\nRETRIEVING HTML...')
@@ -60,11 +74,11 @@ for tag in data.find_all('div'):
 
     print(obj.name, ' - ', obj.availability, ' - ', obj.price,)
 
-    cursor.execute('INSERT INTO Status (availability) VALUES (?)', (obj.availability, ))
+    cursor.execute('INSERT OR REPLACE INTO Status (availability) VALUES (?)', (obj.availability, ))
     cursor.execute('SELECT id FROM Status WHERE availability = ?', (obj.availability, ))
     status_id = cursor.fetchone()[0]
 
-    cursor.execute('INSERT INTO Product (name, price, status_id) VALUES (?, ?, ?)', (obj.name, obj.price, status_id))
+    cursor.execute('INSERT OR REPLACE INTO Product (name, price, status_id) VALUES (?, ?, ?)', (obj.name, obj.price, status_id))
 
 cursor.close()
 conn.commit()
