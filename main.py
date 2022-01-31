@@ -1,6 +1,10 @@
 from email.mime.text import MIMEText
+from selenium.webdriver import ActionChains
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import sqlite3
 import smtplib
 import time
@@ -15,20 +19,32 @@ dataURL = input('\nENTER URL: ')
 def getPage():
     print('\nRETRIEVING HTML...')
 
+    path = '''
+        /html/body/div[1]
+        /div/div[2]/div/div
+        /main/div[2]/button
+    '''
+
     driver = webdriver.Chrome()
     driver.get(dataURL)
+
+    while True:
+        try:
+            element = WebDriverWait(driver, 15).until(
+                EC.element_to_be_clickable((By.XPATH, path))
+            )
+            ActionChains(driver).click(element).perform()
+        except: break
+
     page = driver.page_source
-    data = BeautifulSoup(page, 'html.parser')
 
     driver.quit()
     print('\nRETRIEVAL SUCCESSFUL')
 
-    return data
-
-newData = getPage()
-oldData = newData
+    return BeautifulSoup(page, 'html.parser')
 
 li = list()
+oldLi = list()
 class product:
     name = ''
     availability = ''
@@ -43,13 +59,15 @@ class product:
                 targetClass in child.get('class')
             ): return child.text
 
-def updateDatabase():
+def updateDatabase(data):
+    li = []
+
     conn = sqlite3.connect('database.sqlite')
     cursor = conn.cursor()
 
     print('\nRETRIEVING PRODUCTS...')
 
-    for tag in newData.find_all('div'):
+    for tag in data.find_all('div'):
         try: tag.get('class')
         except: continue
 
@@ -74,6 +92,7 @@ def updateDatabase():
         )
 
         print(obj.name, ' - ', obj.availability, ' - ', obj.price,)
+        li.append((obj.name, obj.availability, obj.price))
 
         cursor.execute('''INSERT OR IGNORE INTO 
             Status (availability) VALUES (?)''', 
@@ -127,9 +146,9 @@ def send():
         server.quit()
 
 while True:
-    updateDatabase()
-    send()
-    while oldData == newData:
+    while oldLi == li:
+        oldLi = li
+        data = getPage()
+        updateDatabase(data)
         time.sleep(600)
-        newData = getPage()
-    oldData = newData
+    send()
